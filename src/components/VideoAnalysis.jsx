@@ -36,7 +36,6 @@ const VideoAnalysis = () => {
           'Content-Type': 'multipart/form-data',
         },
       });
-      console.log(response.data.clippedVideoUrl);
       setAnalysis(response.data);
     } catch (err) {
       setError('Error analyzing video: ' + (err.response?.data?.message || err.message));
@@ -115,19 +114,9 @@ const VideoAnalysis = () => {
                         setError('Error loading video: ' + (e.target.error?.message || 'Unknown error'));
                       }}
                       onLoadedData={() => {
-                        console.log('Video loaded successfully');
                         setError(null);
                         // Auto-play when video is loaded
                         handlePlayVideo();
-                      }}
-                      onLoadStart={() => {
-                        console.log('Video loading started');
-                      }}
-                      onCanPlay={() => {
-                        console.log('Video can play');
-                      }}
-                      onStalled={() => {
-                        console.log('Video playback stalled');
                       }}
                       preload="auto"
                     >
