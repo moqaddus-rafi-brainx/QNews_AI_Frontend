@@ -38,7 +38,8 @@ const VideoAnalysis = () => {
       });
       setAnalysis(response.data);
     } catch (err) {
-      setError('Error analyzing video: ' + (err.response?.data?.message || err.message));
+      console.log(err);
+      setError('Error analyzing video: ' + (err?.response?.data?.trace || err.response?.data?.message || err.message));
     } finally {
       setLoading(false);
     }
