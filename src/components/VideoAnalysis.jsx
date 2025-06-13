@@ -16,6 +16,7 @@ const VideoAnalysis = () => {
       setError(null);
     }
   };
+  console.log("video analysis")
 
   const handleSubmit = async (e) => {
     e.preventDefault();
