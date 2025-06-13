@@ -1,0 +1,177 @@
+.video-analysis-container {
+  max-width: 800px;
+  margin: 2rem auto;
+  padding: 2rem;
+  background-color: #ffffff;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.video-analysis-container h2 {
+  text-align: center;
+  color: #333;
+  margin-bottom: 2rem;
+}
+
+.upload-form {
+  margin-bottom: 2rem;
+}
+
+.file-input-container {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  justify-content: center;
+}
+
+.file-input {
+  padding: 0.5rem;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  flex: 1;
+}
+
+.submit-button {
+  padding: 0.5rem 1rem;
+  background-color: #007bff;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.submit-button:hover {
+  background-color: #0056b3;
+}
+
+.submit-button:disabled {
+  background-color: #cccccc;
+  cursor: not-allowed;
+}
+
+.error-message {
+  color: #dc3545;
+  text-align: center;
+  margin: 1rem 0;
+  padding: 0.5rem;
+  background-color: #f8d7da;
+  border-radius: 4px;
+}
+
+.analysis-results {
+  margin-top: 2rem;
+}
+
+.result-section {
+  margin-bottom: 2rem;
+  padding: 1rem;
+  background-color: #f8f9fa;
+  border-radius: 4px;
+}
+
+.result-section h3 {
+  color: #333;
+  margin-bottom: 0.5rem;
+}
+
+.category-tag {
+  display: inline-block;
+  padding: 0.25rem 0.75rem;
+  background-color: #007bff;
+  color: white;
+  border-radius: 20px;
+  font-size: 0.9rem;
+  text-transform: capitalize;
+}
+
+.segment-container {
+  margin-bottom: 1.5rem;
+  border: 1px solid #e9ecef;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.segment-header {
+  background-color: #e9ecef;
+  padding: 0.5rem 1rem;
+  border-bottom: 1px solid #dee2e6;
+}
+
+.segment-time {
+  font-weight: bold;
+  color: #495057;
+}
+
+.timestamp-item {
+  display: flex;
+  gap: 1rem;
+  margin: 0.5rem;
+  padding: 0.5rem;
+  background-color: #fff;
+  border-radius: 4px;
+}
+
+.timestamp-item .time {
+  font-weight: bold;
+  color: #007bff;
+  min-width: 120px;
+}
+
+.timestamp-item .text {
+  flex: 1;
+}
+
+.no-content {
+  color: #6c757d;
+  font-style: italic;
+  text-align: center;
+  padding: 1rem;
+  background-color: #fff;
+  border-radius: 4px;
+}
+
+.video-player-container {
+  width: 100%;
+  max-width: 800px;
+  margin: 20px auto;
+  background: #f5f5f5;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.clipped-video {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+.video-url-info {
+  padding: 10px;
+  background: #f8f9fa;
+  border-top: 1px solid #dee2e6;
+  word-break: break-all;
+  font-size: 0.8rem;
+  color: #6c757d;
+}
+
+.video-debug-info {
+  padding: 10px;
+  text-align: center;
+}
+
+.debug-button {
+  padding: 8px 16px;
+  background-color: #6c757d;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: background-color 0.2s;
+}
+
+.debug-button:hover {
+  background-color: #5a6268;
+} 
