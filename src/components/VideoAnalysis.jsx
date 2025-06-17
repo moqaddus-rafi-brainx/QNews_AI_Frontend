@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import axios from 'axios';
 import './VideoAnalysis.css';
 
@@ -7,7 +7,12 @@ const VideoAnalysis = () => {
   const [loading, setLoading] = useState(false);
   const [analysis, setAnalysis] = useState(null);
   const [error, setError] = useState(null);
+  const [videoLoading, setVideoLoading] = useState(false);
   const videoRef = useRef(null);
+  const retryCountRef = useRef(0);
+  const isVideoLoadedRef = useRef(false);
+  const maxRetries = 10;
+  const initialDelay = 2000; // 2 seconds
 
   const handleVideoChange = (e) => {
     const file = e.target.files[0];
@@ -27,6 +32,9 @@ const VideoAnalysis = () => {
 
     setLoading(true);
     setError(null);
+    setVideoLoading(false);
+    isVideoLoadedRef.current = false;
+    retryCountRef.current = 0;
 
     const formData = new FormData();
     formData.append('video', video);
@@ -38,9 +46,15 @@ const VideoAnalysis = () => {
         },
       });
       setAnalysis(response.data);
+      // Start loading video immediately when we get the URL
+      if (response.data.clippedVideoUrl) {
+        setVideoLoading(true);
+        retryVideoLoad(response.data.clippedVideoUrl);
+      }
     } catch (err) {
       console.log(err);
       setError('Error analyzing video: ' + (err?.response?.data?.trace || err.response?.data?.message || err.message));
+      setVideoLoading(false);
     } finally {
       setLoading(false);
     }
@@ -52,18 +66,52 @@ const VideoAnalysis = () => {
     return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
   };
 
+  const checkVideoAvailability = async (url) => {
+    try {
+      const response = await fetch(url, { method: 'HEAD' });
+      return response.ok;
+    } catch (error) {
+      return false;
+    }
+  };
+
+  const retryVideoLoad = async (url) => {
+    if (isVideoLoadedRef.current || retryCountRef.current >= maxRetries) {
+      if (!isVideoLoadedRef.current) {
+        setError('Video is taking longer than expected to become available. Please try the "Open Video in New Tab" button.');
+      }
+      setVideoLoading(false);
+      return;
+    }
+
+    const delay = initialDelay * Math.pow(2, retryCountRef.current);
+    await new Promise(resolve => setTimeout(resolve, delay));
+
+    const isAvailable = await checkVideoAvailability(url);
+    if (isAvailable) {
+      if (videoRef.current) {
+        videoRef.current.load();
+        videoRef.current.play().catch(() => {
+          // If play fails, we'll let the user click the play button
+          setVideoLoading(false);
+        });
+      }
+    } else {
+      retryCountRef.current += 1;
+      retryVideoLoad(url);
+    }
+  };
+
   const handlePlayVideo = async () => {
     if (videoRef.current) {
       try {
-        // Reset the video to the beginning
-        videoRef.current.currentTime = 0;
-        // Wait for a small delay to ensure the video is ready
-        await new Promise(resolve => setTimeout(resolve, 100));
-        // Attempt to play
+        setVideoLoading(true);
         await videoRef.current.play();
+        setVideoLoading(false);
       } catch (error) {
         console.error('Play error:', error);
         setError('Error playing video: ' + error.message);
+        setVideoLoading(false);
       }
     }
   };
@@ -86,7 +134,7 @@ const VideoAnalysis = () => {
         </div>
       </form>
 
-      {error && <div className="error-message">{error}</div>}
+      
 
       {analysis && (
         <>
@@ -111,25 +159,23 @@ const VideoAnalysis = () => {
                       crossOrigin="anonymous"
                       onError={(e) => {
                         console.error('Video Error:', e.target.error);
-                        console.error('Video Error Code:', e.target.error?.code);
-                        console.error('Video Error Message:', e.target.error?.message);
-                        setError('Error loading video: ' + (e.target.error?.message || 'Unknown error'));
+                        if (e.target.error?.code === 4 && !isVideoLoadedRef.current) { // MEDIA_ERR_SRC_NOT_SUPPORTED
+                          retryVideoLoad(analysis.clippedVideoUrl);
+                        } else if (!isVideoLoadedRef.current) {
+                          setError('Video cannot be played directly. Please use the "Open Video in New Tab" button to view the video.');
+                          setVideoLoading(false);
+                        }
                       }}
                       onLoadedData={() => {
                         setError(null);
-                        // Auto-play when video is loaded
-                        handlePlayVideo();
+                        setVideoLoading(false);
+                        isVideoLoadedRef.current = true;
                       }}
                       preload="auto"
                     >
                       <source 
                         src={analysis.clippedVideoUrl} 
                         type="video/mp4"
-                        onError={(e) => {
-                          console.error('Source Error:', e);
-                          console.error('Source Error Code:', e.target.error?.code);
-                          setError('Error loading video source: ' + (e.target.error?.message || 'Unknown error'));
-                        }}
                       />
                       Your browser does not support the video tag.
                     </video>
@@ -141,8 +187,9 @@ const VideoAnalysis = () => {
                         onClick={handlePlayVideo}
                         className="debug-button"
                         style={{ marginRight: '10px' }}
+                        disabled={videoLoading}
                       >
-                        Play Video
+                        {videoLoading ? 'Loading Video...' : 'Play Video'}
                       </button>
                       <button 
                         onClick={() => window.open(analysis.clippedVideoUrl, '_blank')}
