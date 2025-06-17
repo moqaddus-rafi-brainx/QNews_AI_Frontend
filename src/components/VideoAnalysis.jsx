@@ -138,7 +138,7 @@ const VideoAnalysis = () => {
 
       {analysis && (
         <>
-          {!analysis.groupedTranscripts?.is_news ? (
+          {!analysis.isNews ? (
             <div className="analysis-results">
               <div className="result-section">
                 <h3>Not a News Video</h3>
@@ -210,29 +210,29 @@ const VideoAnalysis = () => {
 
               <div className="result-section">
                 <h3>Category</h3>
-                <p className="category-tag">{analysis.groupedTranscripts?.category || 'Not categorized'}</p>
+                <p className="category-tag">{analysis.category || 'Not categorized'}</p>
               </div>
 
               <div className="result-section">
                 <h3>Main Topic</h3>
-                <p>{analysis.groupedTranscripts?.main_topic || 'Not detected'}</p>
+                <p>{analysis.mainTopic || 'Not detected'}</p>
               </div>
 
               <div className="result-section">
                 <h3>Summary</h3>
-                <p>{analysis.groupedTranscripts?.summary || 'Not available'}</p>
+                <p>{analysis.summary || 'Not available'}</p>
               </div>
 
               <div className="result-section">
                 <h3>Content to Keep</h3>
-                {analysis.groupedTranscripts?.relevant_content?.merged_segments?.map((segment, index) => (
+                {analysis.relevantContent?.map((segment, index) => (
                   <div key={`merged-${index}`} className="segment-container">
                     <div className="segment-header">
                       <span className="segment-time">
                         {formatTime(segment.startTime)} - {formatTime(segment.endTime)}
                       </span>
                     </div>
-                    {segment.transcripts.map((transcript, tIndex) => (
+                    {segment.transcripts?.map((transcript, tIndex) => (
                       <div key={`transcript-${index}-${tIndex}`} className="timestamp-item">
                         <span className="time">{formatTime(transcript.startTime)} - {formatTime(transcript.endTime)}</span>
                         <span className="text">{transcript.transcript}</span>
@@ -241,7 +241,7 @@ const VideoAnalysis = () => {
                   </div>
                 ))}
                 
-                {analysis.groupedTranscripts?.relevant_content?.unmerged_segments?.map((segment, index) => (
+                {/* {analysis.groupedTranscripts?.relevant_content?.unmerged_segments?.map((segment, index) => (
                   <div key={`unmerged-${index}`} className="segment-container">
                     <div className="segment-header">
                       <span className="segment-time">
@@ -255,18 +255,30 @@ const VideoAnalysis = () => {
                       </div>
                     ))}
                   </div>
-                ))}
+                ))} */}
               </div>
 
               <div className="result-section">
                 <h3>Content to Clip</h3>
-                {analysis.groupedTranscripts?.irrelevant_content?.transcripts?.length > 0 ? (
-                  analysis.groupedTranscripts.irrelevant_content.transcripts.map((transcript, index) => (
-                    <div key={index} className="timestamp-item">
-                      <span className="time">{formatTime(transcript.startTime)} - {formatTime(transcript.endTime)}</span>
-                      <span className="text">{transcript.transcript}</span>
-                    </div>
-                  ))
+                {analysis.irrelevantContent ? (
+                  // Case 1: Array of transcripts with text
+                  analysis.irrelevantContent.transcripts?.length > 0 ? (
+                    analysis.irrelevantContent.transcripts.map((transcript, index) => (
+                      <div key={index} className="timestamp-item">
+                        <span className="time">{formatTime(transcript.startTime)} - {formatTime(transcript.endTime)}</span>
+                        <span className="text">{transcript.transcript}</span>
+                      </div>
+                    ))
+                  ) : // Case 2: Array of time segments without text
+                  Array.isArray(analysis.irrelevantContent) && analysis.irrelevantContent.length > 0 ? (
+                    analysis.irrelevantContent.map((segment, index) => (
+                      <div key={index} className="timestamp-item">
+                        <span className="time">{formatTime(segment.startTime)} - {formatTime(segment.endTime)}</span>
+                      </div>
+                    ))
+                  ) : (
+                    <p className="no-content">No content to clip</p>
+                  )
                 ) : (
                   <p className="no-content">No content to clip</p>
                 )}
