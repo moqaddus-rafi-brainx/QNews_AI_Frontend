@@ -21,6 +21,7 @@ const VideoAnalysis = () => {
       setError(null);
     }
   };
+  console.log("video analysis")
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -51,7 +52,8 @@ const VideoAnalysis = () => {
         retryVideoLoad(response.data.clippedVideoUrl);
       }
     } catch (err) {
-      setError('Error analyzing video: ' + (err.response?.data?.message || err.message));
+      console.log(err);
+      setError('Error analyzing video: ' + (err?.response?.data?.trace || err.response?.data?.message || err.message));
       setVideoLoading(false);
     } finally {
       setLoading(false);
