@@ -4,6 +4,7 @@ import './VideoAnalysis.css';
 
 const VideoAnalysis = () => {
   const [video, setVideo] = useState(null);
+  const [summary, setSummary] = useState('');
   const [loading, setLoading] = useState(false);
   const [analysis, setAnalysis] = useState(null);
   const [error, setError] = useState(null);
@@ -38,6 +39,7 @@ const VideoAnalysis = () => {
 
     const formData = new FormData();
     formData.append('video', video);
+    formData.append('summary', summary);
 
     try {
       const response = await axios.post(`${import.meta.env.VITE_BACKEND_URL}/analyze-video`, formData, {
@@ -128,6 +130,12 @@ const VideoAnalysis = () => {
             onChange={handleVideoChange}
             className="file-input"
           />
+          <textarea
+            placeholder="Enter video summary (optional)"
+            value={summary}
+            onChange={(e) => setSummary(e.target.value)}
+            className="summary-input"
+          />
           <button type="submit" disabled={loading || !video} className="submit-button">
             {loading ? 'Analyzing...' : 'Analyze Video'}
           </button>
@@ -204,7 +212,7 @@ const VideoAnalysis = () => {
 
               <div className="result-section">
                 <h3>Language</h3>
-                <p>{analysis.Language || 'Not detected'}</p>
+                <p>{analysis.language}</p>
                 {/* <p>Confidence: {(analysis.languageDetails?.confidence * 100).toFixed(2)}%</p> */}
               </div>
 
