@@ -49,9 +49,9 @@ const VideoAnalysis = () => {
       });
       setAnalysis(response.data);
       // Start loading video immediately when we get the URL
-      if (response.data.clippedVideoUrl) {
+      if (response.data.videoWithAudioUrl) {
         setVideoLoading(true);
-        retryVideoLoad(response.data.clippedVideoUrl);
+        retryVideoLoad(response.data.videoWithAudioUrl);
       }
     } catch (err) {
       console.log(err);
@@ -146,29 +146,22 @@ const VideoAnalysis = () => {
 
       {analysis && (
         <>
-          {!analysis.isNews ? (
+          
             <div className="analysis-results">
-              <div className="result-section">
-                <h3>Not a News Video</h3>
-                <p>This video does not appear to be news-related content.</p>
-              </div>
-            </div>
-          ) : (
-            <div className="analysis-results">
-              {analysis.clippedVideoUrl && (
+              {analysis.videoWithAudioUrl && (
                 <div className="result-section">
                   <h3>Clipped Video</h3>
                   <div className="video-player-container">
                     <video 
                       ref={videoRef}
-                      key={analysis.clippedVideoUrl}
+                      key={analysis.videoWithAudioUrl}
                       controls 
                       className="clipped-video"
                       crossOrigin="anonymous"
                       onError={(e) => {
                         console.error('Video Error:', e.target.error);
                         if (e.target.error?.code === 4 && !isVideoLoadedRef.current) { // MEDIA_ERR_SRC_NOT_SUPPORTED
-                          retryVideoLoad(analysis.clippedVideoUrl);
+                          retryVideoLoad(analysis.videoWithAudioUrl);
                         } else if (!isVideoLoadedRef.current) {
                           setError('Video cannot be played directly. Please use the "Open Video in New Tab" button to view the video.');
                           setVideoLoading(false);
@@ -182,13 +175,13 @@ const VideoAnalysis = () => {
                       preload="auto"
                     >
                       <source 
-                        src={analysis.clippedVideoUrl} 
+                        src={analysis.videoWithAudioUrl} 
                         type="video/mp4"
                       />
                       Your browser does not support the video tag.
                     </video>
                     <div className="video-url-info">
-                      <small>Video URL: {analysis.clippedVideoUrl}</small>
+                      <small>Video URL: {analysis.videoWithAudioUrl}</small>
                     </div>
                     <div className="video-debug-info">
                       <button 
@@ -200,7 +193,7 @@ const VideoAnalysis = () => {
                         {videoLoading ? 'Loading Video...' : 'Play Video'}
                       </button>
                       <button 
-                        onClick={() => window.open(analysis.clippedVideoUrl, '_blank')}
+                        onClick={() => window.open(analysis.videoWithAudioUrl, '_blank')}
                         className="debug-button"
                       >
                         Open Video in New Tab
@@ -292,7 +285,6 @@ const VideoAnalysis = () => {
                 )}
               </div>
             </div>
-          )}
         </>
       )}
     </div>
