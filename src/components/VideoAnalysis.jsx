@@ -206,7 +206,7 @@ const VideoAnalysis = () => {
               <div className="result-section">
                 <h3>Language</h3>
                 <p>{analysis.language}</p>
-                {/* <p>Confidence: {(analysis.languageDetails?.confidence * 100).toFixed(2)}%</p> */}
+                
               </div>
 
               <div className="result-section">
@@ -242,21 +242,6 @@ const VideoAnalysis = () => {
                   </div>
                 ))}
                 
-                {/* {analysis.groupedTranscripts?.relevant_content?.unmerged_segments?.map((segment, index) => (
-                  <div key={`unmerged-${index}`} className="segment-container">
-                    <div className="segment-header">
-                      <span className="segment-time">
-                        {formatTime(segment.startTime)} - {formatTime(segment.endTime)}
-                      </span>
-                    </div>
-                    {segment.transcripts.map((transcript, tIndex) => (
-                      <div key={`transcript-${index}-${tIndex}`} className="timestamp-item">
-                        <span className="time">{formatTime(transcript.startTime)} - {formatTime(transcript.endTime)}</span>
-                        <span className="text">{transcript.transcript}</span>
-                      </div>
-                    ))}
-                  </div>
-                ))} */}
               </div>
 
               <div className="result-section">
@@ -270,7 +255,7 @@ const VideoAnalysis = () => {
                         <span className="text">{transcript.transcript}</span>
                       </div>
                     ))
-                  ) : // Case 2: Array of time segments without text
+                  ) : // Case 2: Array of time segments without text( from shots )
                   Array.isArray(analysis.irrelevantContent) && analysis.irrelevantContent.length > 0 ? (
                     analysis.irrelevantContent.map((segment, index) => (
                       <div key={index} className="timestamp-item">
