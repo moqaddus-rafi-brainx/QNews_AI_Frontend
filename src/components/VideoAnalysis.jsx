@@ -43,7 +43,7 @@ const VideoAnalysis = () => {
     formData.append('summary', summary);
 
     try {
-      const response = await axios.post(`${import.meta.env.VITE_BACKEND_URL}/analyze-video2`, formData, {
+      const response = await axios.post(`${import.meta.env.VITE_BACKEND_URL}/analyze-video`, formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
