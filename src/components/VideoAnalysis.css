@@ -142,10 +142,13 @@
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
-.clipped-video {
+.clipped-video,
+.original-video {
   width: 100%;
   height: auto;
   display: block;
+  max-height: 450px;
+  object-fit: contain;
 }
 
 .video-url-info {

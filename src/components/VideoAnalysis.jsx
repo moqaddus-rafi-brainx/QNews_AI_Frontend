@@ -10,6 +10,7 @@ const VideoAnalysis = () => {
   const [error, setError] = useState(null);
   const [videoLoading, setVideoLoading] = useState(false);
   const videoRef = useRef(null);
+  const originalVideoRef = useRef(null);
   const retryCountRef = useRef(0);
   const isVideoLoadedRef = useRef(false);
   const maxRetries = 10;
@@ -42,7 +43,7 @@ const VideoAnalysis = () => {
     formData.append('summary', summary);
 
     try {
-      const response = await axios.post(`${import.meta.env.VITE_BACKEND_URL}/analyze-video`, formData, {
+      const response = await axios.post(`${import.meta.env.VITE_BACKEND_URL}/analyze-video2`, formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
@@ -118,6 +119,81 @@ const VideoAnalysis = () => {
     }
   };
 
+  const renderContentToKeep = () => {
+    if (analysis.selectedHighlights) {
+      // Display selectedHighlights structure
+      return (
+        <div className="result-section">
+          <h3>Content to Keep (Selected Highlights)</h3>
+          {analysis.selectedHighlights.map((highlight, index) => (
+            <div key={`highlight-${index}`} className="segment-container">
+              <div className="segment-header">
+                <span className="segment-time">
+                  {formatTime(highlight.start)} - {formatTime(highlight.end)}
+                </span>
+              </div>
+              <div className="highlight-summary">
+                <strong>Summary:</strong> {highlight.highlightSummary}
+              </div>
+            </div>
+          ))}
+        </div>
+      );
+    } else if (analysis.mergedGroups) {
+      // Display mergedGroups structure
+      return (
+        <div className="result-section">
+          <h3>Content to Keep (Merged Groups)</h3>
+          {analysis.mergedGroups.map((group, groupIndex) => (
+            <div key={`group-${groupIndex}`} className="group-container">
+              <h4>Group {groupIndex + 1}</h4>
+              {group.map((segment, segmentIndex) => (
+                <div key={`segment-${groupIndex}-${segmentIndex}`} className="segment-container">
+                  <div className="segment-header">
+                    <span className="segment-time">
+                      {formatTime(segment.startTime)} - {formatTime(segment.endTime)}
+                    </span>
+                    <span className="importance-score">Importance: {segment.importanceScore}</span>
+                  </div>
+                  <div className="transcript-content">
+                    <div className="original-text">
+                      <strong>Original:</strong> {segment.transcript}
+                    </div>
+                    <div className="translation-text">
+                      <strong>Translation:</strong> {segment.english_translation}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ))}
+        </div>
+      );
+    } else {
+      // Fallback to old structure if neither exists
+      return (
+        <div className="result-section">
+          <h3>Content to Keep</h3>
+          {analysis.relevantContent?.map((segment, index) => (
+            <div key={`merged-${index}`} className="segment-container">
+              <div className="segment-header">
+                <span className="segment-time">
+                  {formatTime(segment.startTime)} - {formatTime(segment.endTime)}
+                </span>
+              </div>
+              {segment.transcripts?.map((transcript, tIndex) => (
+                <div key={`transcript-${index}-${tIndex}`} className="timestamp-item">
+                  <span className="time">{formatTime(transcript.startTime)} - {formatTime(transcript.endTime)}</span>
+                  <span className="text">{transcript.transcript}</span>
+                </div>
+              ))}
+            </div>
+          ))}
+        </div>
+      );
+    }
+  };
+
   return (
     <div className="video-analysis-container">
       <h2>Video Analysis</h2>
@@ -142,134 +218,131 @@ const VideoAnalysis = () => {
         </div>
       </form>
 
-      
-
       {analysis && (
         <>
-          
-            <div className="analysis-results">
-              {analysis.videoWithAudioUrl && (
-                <div className="result-section">
-                  <h3>Clipped Video</h3>
-                  <div className="video-player-container">
-                    <video 
-                      ref={videoRef}
-                      key={analysis.videoWithAudioUrl}
-                      controls 
-                      className="clipped-video"
-                      crossOrigin="anonymous"
-                      onError={(e) => {
-                        console.error('Video Error:', e.target.error);
-                        if (e.target.error?.code === 4 && !isVideoLoadedRef.current) { // MEDIA_ERR_SRC_NOT_SUPPORTED
-                          retryVideoLoad(analysis.videoWithAudioUrl);
-                        } else if (!isVideoLoadedRef.current) {
-                          setError('Video cannot be played directly. Please use the "Open Video in New Tab" button to view the video.');
-                          setVideoLoading(false);
-                        }
-                      }}
-                      onLoadedData={() => {
-                        setError(null);
-                        setVideoLoading(false);
-                        isVideoLoadedRef.current = true;
-                      }}
-                      preload="auto"
+          <div className="analysis-results">
+            {/* Original Video Section */}
+            {analysis.originalVideoUrl && (
+              <div className="result-section">
+                <h3>Original Video</h3>
+                <div className="video-player-container">
+                  <video 
+                    ref={originalVideoRef}
+                    key={analysis.originalVideoUrl}
+                    controls 
+                    className="original-video"
+                    crossOrigin="anonymous"
+                    preload="auto"
+                  >
+                    <source 
+                      src={analysis.originalVideoUrl} 
+                      type="video/mp4"
+                    />
+                    Your browser does not support the video tag.
+                  </video>
+                  <div className="video-url-info">
+                    <small>Original Video URL: {analysis.originalVideoUrl}</small>
+                  </div>
+                  <div className="video-debug-info">
+                    <button 
+                      onClick={() => window.open(analysis.originalVideoUrl, '_blank')}
+                      className="debug-button"
                     >
-                      <source 
-                        src={analysis.videoWithAudioUrl} 
-                        type="video/mp4"
-                      />
-                      Your browser does not support the video tag.
-                    </video>
-                    <div className="video-url-info">
-                      <small>Video URL: {analysis.videoWithAudioUrl}</small>
-                    </div>
-                    <div className="video-debug-info">
-                      <button 
-                        onClick={handlePlayVideo}
-                        className="debug-button"
-                        style={{ marginRight: '10px' }}
-                        disabled={videoLoading}
-                      >
-                        {videoLoading ? 'Loading Video...' : 'Play Video'}
-                      </button>
-                      <button 
-                        onClick={() => window.open(analysis.videoWithAudioUrl, '_blank')}
-                        className="debug-button"
-                      >
-                        Open Video in New Tab
-                      </button>
-                    </div>
+                      Open Original Video in New Tab
+                    </button>
                   </div>
                 </div>
-              )}
+              </div>
+            )}
 
+            {/* Clipped Video Section */}
+            {analysis.videoWithAudioUrl && (
+              <div className="result-section">
+                <h3>Clipped Video</h3>
+                <div className="video-player-container">
+                  <video 
+                    ref={videoRef}
+                    key={analysis.videoWithAudioUrl}
+                    controls 
+                    className="clipped-video"
+                    crossOrigin="anonymous"
+                    onError={(e) => {
+                      console.error('Video Error:', e.target.error);
+                      if (e.target.error?.code === 4 && !isVideoLoadedRef.current) { // MEDIA_ERR_SRC_NOT_SUPPORTED
+                        retryVideoLoad(analysis.videoWithAudioUrl);
+                      } else if (!isVideoLoadedRef.current) {
+                        setError('Video cannot be played directly. Please use the "Open Video in New Tab" button to view the video.');
+                        setVideoLoading(false);
+                      }
+                    }}
+                    onLoadedData={() => {
+                      setError(null);
+                      setVideoLoading(false);
+                      isVideoLoadedRef.current = true;
+                    }}
+                    preload="auto"
+                  >
+                    <source 
+                      src={analysis.videoWithAudioUrl} 
+                      type="video/mp4"
+                    />
+                    Your browser does not support the video tag.
+                  </video>
+                  <div className="video-url-info">
+                    <small>Clipped Video URL: {analysis.videoWithAudioUrl}</small>
+                  </div>
+                  <div className="video-debug-info">
+                    <button 
+                      onClick={handlePlayVideo}
+                      className="debug-button"
+                      style={{ marginRight: '10px' }}
+                      disabled={videoLoading}
+                    >
+                      {videoLoading ? 'Loading Video...' : 'Play Video'}
+                    </button>
+                    <button 
+                      onClick={() => window.open(analysis.videoWithAudioUrl, '_blank')}
+                      className="debug-button"
+                    >
+                      Open Clipped Video in New Tab
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Legacy fields - keep for backward compatibility */}
+            {analysis.language && (
               <div className="result-section">
                 <h3>Language</h3>
                 <p>{analysis.language}</p>
-                
               </div>
+            )}
 
+            {analysis.category && (
               <div className="result-section">
                 <h3>Category</h3>
-                <p className="category-tag">{analysis.category || 'Not categorized'}</p>
+                <p className="category-tag">{analysis.category}</p>
               </div>
+            )}
 
+            {analysis.mainTopic && (
               <div className="result-section">
                 <h3>Main Topic</h3>
-                <p>{analysis.mainTopic || 'Not detected'}</p>
+                <p>{analysis.mainTopic}</p>
               </div>
+            )}
 
+            {analysis.summary && (
               <div className="result-section">
                 <h3>Summary</h3>
-                <p>{analysis.summary || 'Not available'}</p>
+                <p>{analysis.summary}</p>
               </div>
+            )}
 
-              <div className="result-section">
-                <h3>Content to Keep</h3>
-                {analysis.relevantContent?.map((segment, index) => (
-                  <div key={`merged-${index}`} className="segment-container">
-                    <div className="segment-header">
-                      <span className="segment-time">
-                        {formatTime(segment.startTime)} - {formatTime(segment.endTime)}
-                      </span>
-                    </div>
-                    {segment.transcripts?.map((transcript, tIndex) => (
-                      <div key={`transcript-${index}-${tIndex}`} className="timestamp-item">
-                        <span className="time">{formatTime(transcript.startTime)} - {formatTime(transcript.endTime)}</span>
-                        <span className="text">{transcript.transcript}</span>
-                      </div>
-                    ))}
-                  </div>
-                ))}
-                
-              </div>
-
-              <div className="result-section">
-                <h3>Content to Clip</h3>
-                {analysis.irrelevantContent ? (
-                  // Case 1: Array of transcripts with text
-                  analysis.irrelevantContent.transcripts?.length > 0 ? (
-                    analysis.irrelevantContent.transcripts.map((transcript, index) => (
-                      <div key={index} className="timestamp-item">
-                        <span className="time">{formatTime(transcript.startTime)} - {formatTime(transcript.endTime)}</span>
-                        <span className="text">{transcript.transcript}</span>
-                      </div>
-                    ))
-                  ) : // Case 2: Array of time segments without text( from shots )
-                  Array.isArray(analysis.irrelevantContent) && analysis.irrelevantContent.length > 0 ? (
-                    analysis.irrelevantContent.map((segment, index) => (
-                      <div key={index} className="timestamp-item">
-                        <span className="time">{formatTime(segment.startTime)} - {formatTime(segment.endTime)}</span>
-                      </div>
-                    ))
-                  ) : (
-                    <p className="no-content">No content to clip</p>
-                  )
-                ) : (
-                  <p className="no-content">No content to clip</p>
-                )}
-              </div>
-            </div>
+            {/* Render content to keep based on new structure */}
+            {renderContentToKeep()}
+          </div>
         </>
       )}
     </div>
