@@ -9,6 +9,7 @@ const VideoAnalysis = () => {
   const [analysis, setAnalysis] = useState(null);
   const [error, setError] = useState(null);
   const [videoLoading, setVideoLoading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
   const videoRef = useRef(null);
   const originalVideoRef = useRef(null);
   const retryCountRef = useRef(0);
@@ -16,13 +17,51 @@ const VideoAnalysis = () => {
   const maxRetries = 10;
   const initialDelay = 2000; // 2 seconds
 
+  // Cloudinary configuration
+  const CLOUDINARY_CLOUD_NAME = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME;
+  const CLOUDINARY_UPLOAD_PRESET = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET;
+
   const handleVideoChange = (e) => {
     const file = e.target.files[0];
     if (file) {
       setVideo(file);
       setError(null);
+      setUploadProgress(0);
     }
   };
+
+  // Function to upload video to Cloudinary
+  const uploadToCloudinary = async (file) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
+    formData.append('resource_type', 'video');
+    formData.append('folder', 'my_videos');
+
+    try {
+      const response = await axios.post(
+        `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/video/upload`,
+        formData,
+        {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          },
+          onUploadProgress: (progressEvent) => {
+            const percentCompleted = Math.round(
+              (progressEvent.loaded * 100) / progressEvent.total
+            );
+            setUploadProgress(percentCompleted);
+          },
+        }
+      );
+      
+      return response.data.secure_url;
+    } catch (error) {
+      console.error('Cloudinary upload error:', error);
+      throw new Error('Failed to upload video to Cloudinary: ' + error.message);
+    }
+  };
+
   console.log("video analysis")
 
   const handleSubmit = async (e) => {
@@ -35,19 +74,27 @@ const VideoAnalysis = () => {
     setLoading(true);
     setError(null);
     setVideoLoading(false);
+    setUploadProgress(0);
     isVideoLoadedRef.current = false;
     retryCountRef.current = 0;
 
-    const formData = new FormData();
-    formData.append('video', video);
-    formData.append('summary', summary);
-
     try {
-      const response = await axios.post(`${import.meta.env.VITE_BACKEND_URL}/analyze-video`, formData, {
+      // Step 1: Upload video to Cloudinary
+      console.log('Uploading video to Cloudinary...');
+      const cloudinaryUrl = await uploadToCloudinary(video);
+      console.log('Video uploaded successfully:', cloudinaryUrl);
+
+      // Step 2: Send video URL and summary to backend
+      console.log('Sending video URL to backend...');
+      const response = await axios.post(`${import.meta.env.VITE_BACKEND_URL}/analyze-video`, {
+        videoUrl: cloudinaryUrl,
+        summary: summary,
+      }, {
         headers: {
-          'Content-Type': 'multipart/form-data',
+          'Content-Type': 'application/json',
         },
       });
+
       setAnalysis(response.data);
       // Start loading video immediately when we get the URL
       if (response.data.videoWithAudioUrl) {
@@ -60,6 +107,7 @@ const VideoAnalysis = () => {
       setVideoLoading(false);
     } finally {
       setLoading(false);
+      setUploadProgress(0);
     }
   };
 
@@ -212,8 +260,27 @@ const VideoAnalysis = () => {
             onChange={(e) => setSummary(e.target.value)}
             className="summary-input"
           />
+          
+          {/* Upload Progress Bar */}
+          {loading && uploadProgress > 0 && uploadProgress < 100 && (
+            <div className="upload-progress">
+              <div className="progress-bar">
+                <div 
+                  className="progress-fill" 
+                  style={{ width: `${uploadProgress}%` }}
+                ></div>
+              </div>
+              <span className="progress-text">Uploading: {uploadProgress}%</span>
+            </div>
+          )}
+          
           <button type="submit" disabled={loading || !video} className="submit-button">
-            {loading ? 'Analyzing...' : 'Analyze Video'}
+            {loading 
+              ? (uploadProgress > 0 && uploadProgress < 100 
+                  ? 'Uploading Video...' 
+                  : 'Analyzing Video...')
+              : 'Upload & Analyze Video'
+            }
           </button>
         </div>
       </form>
