@@ -10,6 +10,7 @@ const VideoAnalysis = () => {
   const [error, setError] = useState(null);
   const [videoLoading, setVideoLoading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
+  const [uploadMethod, setUploadMethod] = useState('cloudinary');
   const videoRef = useRef(null);
   const originalVideoRef = useRef(null);
   const retryCountRef = useRef(0);
@@ -62,6 +63,36 @@ const VideoAnalysis = () => {
     }
   };
 
+  // Function to send video buffer directly to backend
+  const sendVideoBuffer = async (file) => {
+    const formData = new FormData();
+    formData.append('video', file);
+    formData.append('summary', summary);
+
+    try {
+      const response = await axios.post(
+        `${import.meta.env.VITE_BACKEND_URL}/analyze-video2`,
+        formData,
+        {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          },
+          onUploadProgress: (progressEvent) => {
+            const percentCompleted = Math.round(
+              (progressEvent.loaded * 100) / progressEvent.total
+            );
+            setUploadProgress(percentCompleted);
+          },
+        }
+      );
+      
+      return response;
+    } catch (error) {
+      console.error('Backend buffer upload error:', error);
+      throw new Error('Failed to send video buffer to backend: ' + error.message);
+    }
+  };
+
   console.log("video analysis")
 
   const handleSubmit = async (e) => {
@@ -79,21 +110,29 @@ const VideoAnalysis = () => {
     retryCountRef.current = 0;
 
     try {
-      // Step 1: Upload video to Cloudinary
-      console.log('Uploading video to Cloudinary...');
-      const cloudinaryUrl = await uploadToCloudinary(video);
-      console.log('Video uploaded successfully:', cloudinaryUrl);
+      let response;
+      
+      if (uploadMethod === 'cloudinary') {
+        // Step 1: Upload video to Cloudinary
+        console.log('Uploading video to Cloudinary...');
+        const cloudinaryUrl = await uploadToCloudinary(video);
+        console.log('Video uploaded successfully:', cloudinaryUrl);
 
-      // Step 2: Send video URL and summary to backend
-      console.log('Sending video URL to backend...');
-      const response = await axios.post(`${import.meta.env.VITE_BACKEND_URL}/analyze-video`, {
-        videoUrl: cloudinaryUrl,
-        summary: summary,
-      }, {
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
+        // Step 2: Send video URL and summary to backend
+        console.log('Sending video URL to backend...');
+        response = await axios.post(`${import.meta.env.VITE_BACKEND_URL}/analyze-video`, {
+          videoUrl: cloudinaryUrl,
+          summary: summary,
+        }, {
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        });
+      } else {
+        // Direct buffer upload to backend
+        console.log('Sending video buffer directly to backend...');
+        response = await sendVideoBuffer(video);
+      }
 
       setAnalysis(response.data);
       // Start loading video immediately when we get the URL
@@ -261,6 +300,37 @@ const VideoAnalysis = () => {
             className="summary-input"
           />
           
+          {/* Upload Method Selection */}
+          <div className="upload-method-selection">
+            <h4>Upload Method:</h4>
+            <div className="radio-group">
+              <label className="radio-label">
+                <input
+                  type="radio"
+                  name="uploadMethod"
+                  value="cloudinary"
+                  checked={uploadMethod === 'cloudinary'}
+                  onChange={(e) => setUploadMethod(e.target.value)}
+                />
+                <span className="radio-text">
+                  Cloudinary Upload (Recommended) - Uploads to Cloudinary first, then sends URL to backend
+                </span>
+              </label>
+              <label className="radio-label">
+                <input
+                  type="radio"
+                  name="uploadMethod"
+                  value="buffer"
+                  checked={uploadMethod === 'buffer'}
+                  onChange={(e) => setUploadMethod(e.target.value)}
+                />
+                <span className="radio-text">
+                  Direct Buffer Upload - Sends video file directly to backend (may cause 413 errors for large files)
+                </span>
+              </label>
+            </div>
+          </div>
+          
           {/* Upload Progress Bar */}
           {loading && uploadProgress > 0 && uploadProgress < 100 && (
             <div className="upload-progress">
@@ -279,7 +349,7 @@ const VideoAnalysis = () => {
               ? (uploadProgress > 0 && uploadProgress < 100 
                   ? 'Uploading Video...' 
                   : 'Analyzing Video...')
-              : 'Upload & Analyze Video'
+              : (uploadMethod === 'cloudinary' ? 'Upload to Cloudinary & Analyze' : 'Upload Buffer & Analyze')
             }
           </button>
         </div>
