@@ -10,7 +10,6 @@ const VideoAnalysis = () => {
   const [error, setError] = useState(null);
   const [videoLoading, setVideoLoading] = useState({});
   const [uploadProgress, setUploadProgress] = useState(0);
-  const [uploadMethod, setUploadMethod] = useState('cloudinary');
   const videoRefs = useRef({});
   const originalVideoRef = useRef(null);
   const retryCountRef = useRef({});
@@ -18,48 +17,12 @@ const VideoAnalysis = () => {
   const maxRetries = 10;
   const initialDelay = 2000; // 2 seconds
 
-  // Cloudinary configuration
-  const CLOUDINARY_CLOUD_NAME = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME;
-  const CLOUDINARY_UPLOAD_PRESET = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET;
-
   const handleVideoChange = (e) => {
     const file = e.target.files[0];
     if (file) {
       setVideo(file);
       setError(null);
       setUploadProgress(0);
-    }
-  };
-
-  // Function to upload video to Cloudinary
-  const uploadToCloudinary = async (file) => {
-    const formData = new FormData();
-    formData.append('file', file);
-    formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
-    formData.append('resource_type', 'video');
-    formData.append('folder', 'my_videos');
-
-    try {
-      const response = await axios.post(
-        `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/video/upload`,
-        formData,
-        {
-          headers: {
-            'Content-Type': 'multipart/form-data',
-          },
-          onUploadProgress: (progressEvent) => {
-            const percentCompleted = Math.round(
-              (progressEvent.loaded * 100) / progressEvent.total
-            );
-            setUploadProgress(percentCompleted);
-          },
-        }
-      );
-      
-      return response.data.secure_url;
-    } catch (error) {
-      console.error('Cloudinary upload error:', error);
-      throw new Error('Failed to upload video to Cloudinary: ' + error.message);
     }
   };
 
@@ -143,29 +106,9 @@ const VideoAnalysis = () => {
     retryCountRef.current = {};
 
     try {
-      let response;
-      
-      if (uploadMethod === 'cloudinary') {
-        // Step 1: Upload video to Cloudinary
-        console.log('Uploading video to Cloudinary...');
-        const cloudinaryUrl = await uploadToCloudinary(video);
-        console.log('Video uploaded successfully:', cloudinaryUrl);
-
-        // Step 2: Send video URL and summary to backend
-        console.log('Sending video URL to backend...');
-        response = await axios.post(`${import.meta.env.VITE_BACKEND_URL}/analyze-video`, {
-          videoUrl: cloudinaryUrl,
-          summary: summary,
-        }, {
-          headers: {
-            'Content-Type': 'application/json',
-          },
-        });
-      } else if (uploadMethod === 'gcs') {
-        // Google Cloud Storage upload
-        console.log('Uploading video to Google Cloud Storage...');
-        response = await uploadToGoogleCloudStorage(video);
-      }
+      // Google Cloud Storage upload
+      console.log('Uploading video to Google Cloud Storage...');
+      const response = await uploadToGoogleCloudStorage(video);
 
       setAnalysis(response.data);
       
@@ -546,37 +489,6 @@ const VideoAnalysis = () => {
             className="summary-input"
           />
           
-          {/* Upload Method Selection */}
-          <div className="upload-method-selection">
-            <h4>Upload Method:</h4>
-            <div className="radio-group">
-              <label className="radio-label">
-                <input
-                  type="radio"
-                  name="uploadMethod"
-                  value="cloudinary"
-                  checked={uploadMethod === 'cloudinary'}
-                  onChange={(e) => setUploadMethod(e.target.value)}
-                />
-                <span className="radio-text">
-                  Cloudinary Upload (Recommended) - Uploads to Cloudinary first, then sends URL to backend
-                </span>
-              </label>
-              <label className="radio-label">
-                <input
-                  type="radio"
-                  name="uploadMethod"
-                  value="gcs"
-                  checked={uploadMethod === 'gcs'}
-                  onChange={(e) => setUploadMethod(e.target.value)}
-                />
-                <span className="radio-text">
-                  Google Cloud Storage Upload - Uploads to Google Cloud Storage using signed URLs, then sends GS URI to backend
-                </span>
-              </label>
-            </div>
-          </div>
-          
           {/* Upload Progress Bar */}
           {loading && uploadProgress > 0 && uploadProgress < 100 && (
             <div className="upload-progress">
@@ -595,7 +507,7 @@ const VideoAnalysis = () => {
               ? (uploadProgress > 0 && uploadProgress < 100 
                   ? 'Uploading Video...' 
                   : 'Analyzing Video...')
-              : (uploadMethod === 'cloudinary' ? 'Upload to Cloudinary & Analyze' : 'Upload to Google Cloud Storage & Analyze')
+              : 'Upload to Google Cloud Storage & Analyze'
             }
           </button>
         </div>
